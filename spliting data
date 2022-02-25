@@ -1,0 +1,108 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Nov 18 15:32:44 2021
+
+@author: Qilin Zhang
+"""
+import numpy as np
+import torch
+
+from sklearn.preprocessing import StandardScaler,MinMaxScaler
+
+
+def SplitData(out_final, history_len, prediction_len):
+
+    normal = []
+    scaler = MinMaxScaler()
+    for i in out_final:
+        section = np.array(i)
+        section1 = scaler.fit_transform(section)
+        # scaler.inverse_transform() 
+        normal.append(section1)
+    
+    # split dataset
+    window_len = history_len + prediction_len 
+    train_his, train_pre, test_his, test_pre = [],[],[],[]
+    
+    for i in normal:
+        total_len = len(i)
+        if total_len > window_len: 
+            for index1 in range(total_len - window_len + 1):
+                if index1 != total_len - window_len:
+                    train_his.append(i[index1 : index1 + history_len,:])
+                    train_pre.append(i[index1 + history_len : index1 + window_len,0]) 
+                else:
+                    test_his.append(i[index1 : index1 + history_len,:])
+                    test_pre.append(i[index1 + history_len : index1 + window_len,0]) 
+           
+    train_his = np.array(train_his).astype('float32')
+    train_pre = np.array(train_pre).astype('float32')
+    test_his = np.array(test_his).astype('float32')
+    test_pre = np.array(test_pre).astype('float32')    
+    
+    train_his = torch.from_numpy(train_his)
+    train_pre = torch.from_numpy(train_pre)
+    test_his = torch.from_numpy(test_his)
+    test_pre = torch.from_numpy(test_pre)
+    
+    return train_his, train_pre, test_his, test_pre
+
+
+def SplitData2(out_final, history_len, prediction_len):
+  
+    normal = []
+    scaler = MinMaxScaler()
+    for i in out_final:
+        section = np.array(i)
+        section1 = scaler.fit_transform(section)
+        normal.append(section1)
+t
+    window_len = history_len + prediction_len 
+    train_his, train_pre, test_his, test_pre = [],[],[],[]
+    
+    for i in normal:
+        total_len = len(i)
+        if total_len > window_len: 
+            train_his.append(i[total_len- history_len - prediction_len : total_len - prediction_len,1:15])
+            train_pre.append(i[total_len- history_len - prediction_len : total_len - prediction_len,0]) 
+            test_his.append(i[total_len - prediction_len : total_len,1:15])
+            test_pre.append(i[total_len - prediction_len : total_len,0]) 
+         
+    train_his = np.array(train_his).astype('float32')
+    train_pre = np.array(train_pre).astype('float32')
+    test_his = np.array(test_his).astype('float32')
+    test_pre = np.array(test_pre).astype('float32')    
+    
+    return train_his, train_pre, test_his, test_pre
+
+def SplitData3(out_final, history_len, prediction_len):
+
+    normal = []
+    scaler = MinMaxScaler()
+    for i in out_final:
+        section = np.array(i)
+        section1 = scaler.fit_transform(section)
+        # scaler.inverse_transform() 
+        normal.append(section1)
+    
+    window_len = history_len + prediction_len 
+    train_his, train_pre, test_his, sel_data = [],[],[],[]
+    
+    for i in normal:
+        total_len = len(i)
+        if total_len > window_len: 
+            sel_data.append(i)
+            for index1 in range(total_len - window_len + 1):
+                train_his.append(i[index1 : index1 + history_len,:])
+                train_pre.append(i[index1 + history_len : index1 + window_len,0]) 
+            test_his.append(i[total_len - history_len : total_len, :])
+           
+    train_his = np.array(train_his).astype('float32')
+    train_pre = np.array(train_pre).astype('float32')
+    test_his = np.array(test_his).astype('float32')    
+    
+    train_his = torch.from_numpy(train_his)
+    train_pre = torch.from_numpy(train_pre)
+    test_his = torch.from_numpy(test_his)
+    
+    return train_his, train_pre, test_his, sel_data
