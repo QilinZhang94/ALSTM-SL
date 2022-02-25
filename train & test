@@ -1,0 +1,131 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Nov 22 10:02:23 2021
+
+@author: Qilin Zhang
+"""
+
+import torch
+import torch.nn as nn
+from torch.autograd import Variable
+from models import Lstm, BiLstm, ALstm, RNN, GRU, AGRU, ABiLstm, ARNN, ABiLstm2, ANN
+
+def TandT(train_his, train_pre, test_his, test_pre, history_len, prediction_len):
+    
+    model = ALstm(len(train_his[0][0]), history_len, prediction_len)
+    
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+    
+    
+    for e in range(150):
+        var_x = Variable(train_his)
+        var_y = Variable(train_pre)
+        
+        out = model(var_x)
+        
+        loss = criterion(out, var_y)
+        
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        
+    #print('*'*40)
+    #print('epoch:{}, training loss (RMSE): {:.5f}'.format(e+1, loss.data**0.5))
+    
+    model = model.eval()
+    pre_x = Variable(test_his)
+    pre_y = Variable(test_pre)
+    
+    out_pre = model(pre_x)
+    
+    if prediction_len < 2:
+        loss_pre = criterion(out_pre, pre_y)
+        #print('*'*40)
+        #print('prediction loss (RMSE): {:.5f}'.format((loss_pre.data)**0.5))
+    else:
+        #print('*'*40)
+        loss_pre = []
+        for i in range(len(out_pre[0])):
+            loss_pre1 = criterion(out_pre[:,i], pre_y[:,i])
+            #print('prediction loss (RMSE) (multi): {:.5f}'.format((loss_pre1)**0.5))
+            loss_pre.append(loss_pre1)
+    return out, loss, out_pre, loss_pre, pre_y
+
+'''
+for ANN
+'''
+def TandT2(train_his, train_pre, test_his, test_pre, history_len, prediction_len):
+    
+    model = ANN()
+    
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+    
+    
+    for e in range(150):
+        var_x = Variable(train_his)
+        var_y = Variable(train_pre)
+        
+        out = model(var_x)
+        
+        loss = criterion(out, var_y)
+        
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        
+    #print('*'*40)
+    #print('epoch:{}, training loss (RMSE): {:.5f}'.format(e+1, loss.data**0.5))
+    
+    model = model.eval()
+    pre_x = Variable(test_his)
+    pre_y = Variable(test_pre)
+    
+    out_pre = model(pre_x)
+    
+    if prediction_len < 2:
+        loss_pre = criterion(out_pre, pre_y)
+        #print('*'*40)
+        #print('prediction loss (RMSE): {:.5f}'.format((loss_pre.data)**0.5))
+    else:
+        #print('*'*40)
+        loss_pre = []
+        for i in range(len(out_pre[0])):
+            loss_pre1 = criterion(out_pre[:,i], pre_y[:,i])
+            #print('prediction loss (RMSE) (multi): {:.5f}'.format((loss_pre1)**0.5))
+            loss_pre.append(loss_pre1)
+    return out, loss, out_pre, loss_pre, pre_y
+'''
+for future forecasting
+'''
+
+def TandT3(train_his, train_pre, test_his, history_len, prediction_len):
+    
+    model = ALstm(len(train_his[0][0]), history_len, prediction_len)
+    
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+    
+    
+    for e in range(150):
+        var_x = Variable(train_his)
+        var_y = Variable(train_pre)
+        
+        out = model(var_x)
+        
+        loss = criterion(out, var_y)
+        
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        
+    #print('*'*40)
+    #print('epoch:{}, training loss (RMSE): {:.5f}'.format(e+1, loss.data**0.5))
+    
+    model = model.eval()
+    pre_x = Variable(test_his)
+
+    out_pre = model(pre_x)
+    
+    return out_pre
