@@ -1,0 +1,112 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Nov 15 19:23:49 2021
+
+@author: Qilin Zhang
+
+"""
+
+import numpy as np
+import xlrd
+from datetime import datetime
+from xlrd import xldate_as_tuple
+
+sheet = 'TRF_TREND'
+def ProcessTraffic(sheet):
+    filename = 'Bucket_96805/Bucket_96805.xls'
+    workbook = xlrd.open_workbook_xls(filename)
+    sheet1 = workbook.sheet_by_name(sheet)
+    rows = sheet1.nrows
+    cols = sheet1.ncols
+    data_all = []
+
+    for i in range(1,rows):
+        data1 = []
+        for j in range(cols):
+            ctype = sheet1.cell(i, j).ctype  
+            cell = sheet1.cell_value(i, j)
+            if ctype == 2 and cell % 1 == 0:  
+                cell = int(cell)
+            elif ctype == 3:
+                
+                date = datetime(*xldate_as_tuple(cell, 0))
+                cell = date.strftime('%Y')
+            elif ctype == 4:
+                cell = True if cell == 1 else False
+            data1.append(cell)
+        data_all.append(data1)
+        
+    #  stste_code  shrp_id
+    code_id = []
+    for i in range(1,rows):
+        data2 = []
+        for j in [0,2]:
+            data2.append(sheet1.cell(i, j).value) 
+        code_id.append(data2)
+    
+    
+    index = []
+    for i in code_id:
+        if i not in index:
+            index.append(i)
+        
+        
+    index2 = []  
+    for j in index:
+        index1 = []
+        for i, element in enumerate(code_id):
+            if element == j:
+                index1.append(i)
+        index2.append(index1)
+        
+    
+    index4 = []
+    for i in index2:
+        index3 = []
+        for j in i:
+            index3.append(data_all[j])
+        index4.append(index3)
+        
+   
+    index5 = []
+    for i in index4:
+        i.sort(key=lambda x:x[4]) # list排序方法，x[4]代表按照list元组中第5个元素排列
+        index5.append(i)
+    
+    
+    output = []
+    for i in index5:
+        index6 = []
+        for j in i:
+            del j[3]
+            del j[1]
+            index6.append(j)
+        output.append(index6)
+    
+   
+    out_trf = []   
+    for i in output:
+        index7 = []
+        index8 = []
+        for j in i:
+            if j[2] not in index7:
+                index7.append(j[2])  
+                index8.append(j)
+        out_trf.append(index8)
+        
+    out_trf1 = []
+    
+   
+    for i in out_trf:
+        year = []
+        for j in i:
+            if j[3] != 0:
+                year.append(j)
+        out_trf1.append(year)
+    
+    return out_trf1
+
+out_trf = ProcessTraffic('TRF_TREND')
+
+
+        
