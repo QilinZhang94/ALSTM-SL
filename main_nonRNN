@@ -1,0 +1,98 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Nov 23 11:36:25 2021
+
+@author: Qilin Zhang
+
+traing and testing non-RNN related models
+"""
+
+import numpy as np
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import r2_score
+from processing_traffic import ProcessTraffic
+from processing_iri import ProcessIRI
+from processing_construction import ProcessCons
+from feature_fusion import Trans, ClimateFusion, OutFusion
+from spliting_data import SplitData2
+from sklearn.linear_model import LinearRegression
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.svm import SVR
+from sklearn.neural_network import MLPRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.tree import ExtraTreeRegressor
+from xgboost import XGBRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import AdaBoostRegressor
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.ensemble import BaggingRegressor
+
+# Construction
+out_cons = ProcessCons()
+
+# Climate
+out_climate = ClimateFusion()
+
+# Traffic
+out_trf = ProcessTraffic('TRF_TREND')
+
+# IRI
+out_iri = ProcessIRI('MON_HSS_PROFILE_SECTION')
+
+# reading matching table
+trans = Trans()
+
+# matching out_iri, out_trf and out_climate
+out_final = OutFusion(out_iri, out_trf, out_climate, trans, out_cons)
+
+history_len = 7
+prediction_len = 5
+
+# spliting data
+train_his, train_pre, test_his, test_pre = SplitData2(
+    out_final, history_len, prediction_len)
+
+
+train_his = train_his.reshape(-1,len(train_his[0][0]))
+train_pre = train_pre.reshape(-1,1)
+test_his = test_his.reshape(-1,len(test_his[0][0]))
+test_pre = test_pre.reshape(-1,1)
+
+# import models 
+models = [LinearRegression(), KNeighborsRegressor(), SVR(), MLPRegressor(alpha=20), DecisionTreeRegressor(
+), ExtraTreeRegressor(), XGBRegressor(), RandomForestRegressor(), AdaBoostRegressor(), GradientBoostingRegressor(), BaggingRegressor()]
+models_str = ['LinearRegression', 'KNNRegressor', 'SVR', 'MLPRegressor',
+              'DecisionTree', 'ExtraTree', 'XGBoost', 'RandomForest', 'AdaBoost', 'GradientBoost', 'Bagging']
+
+# training and testing RMSE, R2 (mean，std)
+times = 20 
+results = np.zeros((2,prediction_len,times))
+if prediction_len < 2:
+    for name, model in zip(models_str, models):
+        for j in range(times):
+            model = model
+            model.fit(train_his, train_pre)
+            out_pre = model.predict(test_his)
+            results[0,0,j] = mean_squared_error(test_pre, out_pre, squared=False) # if False returns RMSE value.
+            results[1,0,j] = r2_score(test_pre, out_pre)
+
+        print('*'*40)  
+        print('Model:'+ name)
+        print('RMSE-mean:{:.5f}, RMSE-std: {:.5f}'.format(np.mean(results[0,:,:]), np.std(results[0,:,:])))
+        print('R2-mean:{:.5f}, R2-std: {:.5f}'.format(np.mean(results[1,:,:]), np.std(results[1,:,:])))
+else:
+    for name,model in zip(models_str,models):
+        for j in range(times):
+            model = model
+            model.fit(train_his, train_pre)
+            out_pre = model.predict(test_his)
+            out_pre = out_pre.reshape(-1,prediction_len)
+            test_pre = test_pre.reshape(-1,prediction_len)
+            for i in range(prediction_len):
+                results[0,i,j] = mean_squared_error(test_pre[:,i], out_pre[:,i], squared=False)
+                results[1,i,j] = r2_score(test_pre[:,i], out_pre[:,i])
+        print('*'*40)
+        print('Model:'+ name)
+        for i in range(prediction_len):    
+            print('RMSE-mean:{:.5f}, RMSE-std: {:.5f}'.format(np.mean(results[0,i,:]), np.std(results[0,i,:])))
+            print('R2-mean:{:.5f}, R2-std: {:.5f}'.format(np.mean(results[1,i,:]), np.std(results[1,i,:])))
