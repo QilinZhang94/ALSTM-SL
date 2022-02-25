@@ -1,0 +1,106 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Dec 20 15:34:03 2021
+
+@author: Qilin Zhang
+"""
+
+import xlrd
+from datetime import datetime
+from xlrd import xldate_as_tuple
+from processing_iri import ProcessIRI
+import pandas as pd
+
+"""
+processing Structure and Construction data in LTPP dataset
+"""
+
+def ProcessCons():
+    
+    table_iri = ProcessIRI('MON_HSS_PROFILE_SECTION')
+    
+    sheet = 'CONSTRUCTION_EVENTS_EXP' 
+    
+    
+    filename = 'Bucket_97954/Bucket_97954.xls'
+    workbook = xlrd.open_workbook_xls(filename)
+    sheet1 = workbook.sheet_by_name(sheet)
+    rows = sheet1.nrows
+    cols = sheet1.ncols
+    data_all = []
+    
+    
+    # link: https://www.cnblogs.com/xxiong1031/p/7069006.html
+    for i in range(1,rows):
+        data1 = []
+        for j in range(cols):
+            ctype = sheet1.cell(i, j).ctype  
+            cell = sheet1.cell_value(i, j)
+            if ctype == 2 and cell % 1 == 0:  
+                cell = int(cell)
+            elif ctype == 3:
+                # 转成datetime对象
+                date = datetime(*xldate_as_tuple(cell, 0))
+                cell = date.strftime('%Y') 
+            elif ctype == 4:
+                cell = True if cell == 1 else False
+            data1.append(cell)
+        data_all.append(data1)
+    
+    #  IMPT_TYPE 
+    section_con = []
+    for section in table_iri:
+        year_con = []
+        for year in section:
+            for item in data_all:
+                if item[0] == year[1] and item[2] == year[2] and item[3] == year[0]:
+                    year_con.append([year[0],year[1],year[2]])
+        section_con.append(year_con)
+    
+    
+    section_con1 = []
+    for section in section_con:
+        year_con1 = []
+        lens = len(section)
+        if lens == 1:
+            year_con1.append([section[0][0],section[0][1],section[0][2],1])
+        elif lens == 2:
+            if section[0][0] == section[1][0]:
+                year_con1.append([section[0][0],section[0][1],section[0][2],2])
+            else:
+                year_con1.append([section[0][0],section[0][1],section[0][2],1])
+                year_con1.append([section[1][0],section[1][1],section[1][2],1])
+        elif lens > 2:
+            count = pd.value_counts(section) 
+            for i in range(len(count)):
+                year_con1.append([count.index.tolist()[i][0],count.index.tolist()[i][1],count.index.tolist()[i][2],count.tolist()[i]])
+        section_con1.append(year_con1)  
+                
+    
+    section_con2 = []  
+    for section1, section2 in zip(table_iri, section_con1):  
+        year_con2 = []
+        if section2 == []:
+            for year in section1:
+                year_con2.append([year[0],year[1],year[2],0])
+        else:
+            for year in section1:
+                flag = 0 
+                for year1 in section2:
+                    if year[0] == year1[0] and year[1] == year1[1] and year[2] == year1[2]:
+                        year_con2.append([year1[0],year1[1],year1[2],year1[3]])
+                        flag = 1
+                        break
+                if flag != 1:
+                    year_con2.append([year[0],year[1],year[2],0])   
+        section_con2.append(year_con2)
+    
+    return section_con2          
+            
+        
+section_con2 = ProcessCons()   
+    
+            
+        
+            
+        
